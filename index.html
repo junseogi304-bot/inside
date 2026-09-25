@@ -76,7 +76,7 @@
                 <div class="absolute -right-4 -bottom-6 text-7xl opacity-20 font-black">⚡</div>
             </div>
 
-            <!-- 미니 찬반 토론 위젯 -->
+            <!-- 미니 찬반 토론 위젯 (배너) -->
             <div id="mini-vs-container" class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-indigo-100 shadow-sm p-5 space-y-4">
                 <!-- 동적 렌더링 영역 -->
             </div>
@@ -155,7 +155,7 @@
                     </div>
                 </div>
                 
-                <!-- VS 토론 상세 전용 투표 영역 -->
+                <!-- VS 토론 상세 전용 투표 영역 (배너와 똑같이 연동되어 표시됨) -->
                 <div id="detail-vs-area" class="hidden my-4 p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-3">
                     <!-- 동적 렌더링 -->
                 </div>
@@ -223,8 +223,8 @@
                         <span class="text-xs font-bold text-indigo-900">⚖️ 이 글을 '찬반 토론(VS)'으로 등록하기</span>
                     </label>
                     <div id="vs-inputs-box" class="hidden grid grid-cols-2 gap-2 pt-1">
-                        <input type="text" id="vs-opt1-input" placeholder="찬성 항목 (예: 부먹)" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
-                        <input type="text" id="vs-opt2-input" placeholder="반대 항목 (예: 찍먹)" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+                        <input type="text" id="vs-opt1-input" placeholder="찬성 항목 (예: 외모)" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+                        <input type="text" id="vs-opt2-input" placeholder="반대 항목 (예: 성격)" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
 
@@ -409,19 +409,19 @@
                 onSnapshot(postsCol, (snapshot) => {
                     snapshot.forEach(docSnap => {
                         const data = docSnap.data();
-                        if (data.isVs) {
-                            allVsMap.set(docSnap.id, {
-                                id: docSnap.id,
-                                roomId: gallery.id,
-                                roomTitle: gallery.title,
-                                title: data.title || '',
-                                opt1: data.vsOpt1 || '찬성',
-                                opt2: data.vsOpt2 || '반대',
-                                count1: data.vsCount1 || 0,
-                                count2: data.vsCount2 || 0,
-                                createdAt: data.createdAt || 0
-                            });
-                        }
+                        allVsMap.set(docSnap.id, {
+                            id: docSnap.id,
+                            roomId: gallery.id,
+                            roomTitle: gallery.title,
+                            title: data.title || '',
+                            opt1: data.vsOpt1 || '찬성',
+                            opt2: data.vsOpt2 || '반대',
+                            count1: data.vsCount1 || 0,
+                            count2: data.vsCount2 || 0,
+                            createdAt: data.createdAt || 0,
+                            isVs: !!data.isVs,
+                            score: ((data.likes || 0) * 3) + (data.views || 0)
+                        });
                     });
                     allVsPosts = Array.from(allVsMap.values());
                     renderVsWidget();
@@ -435,7 +435,11 @@
 
             let target;
             if (allVsPosts.length > 0) {
-                allVsPosts.sort((a, b) => (b.count1 + b.count2) - (a.count1 + a.count2) || b.createdAt - a.createdAt);
+                // isVs 체크된 글 우선, 없으면 점수 높은 글을 배너에 노출
+                allVsPosts.sort((a, b) => {
+                    if (a.isVs !== b.isVs) return b.isVs - a.isVs;
+                    return b.score - a.score || b.createdAt - a.createdAt;
+                });
                 target = allVsPosts[0];
             } else {
                 target = {
@@ -555,7 +559,6 @@
 
         window.openHotPost = function(roomId, postId) {
             window.enterGallery(roomId);
-            // 방이 열리고 currentRoomId가 완벽히 세팅된 후 상세 글을 안전하게 호출하도록 시간 여유를 줌
             setTimeout(() => {
                 window.openPost(postId);
             }, 300);
@@ -648,7 +651,7 @@
 
         window.openPost = async function(postId) {
             currentPostId = postId;
-            if (!currentRoomId) return; // 방 ID가 없으면 중단
+            if (!currentRoomId) return;
 
             const galleryInfo = galleries.find(g => g.id === currentRoomId);
             if (galleryInfo) {
@@ -693,36 +696,37 @@
                     }
 
                     const vsArea = document.getElementById('detail-vs-area');
-                    if (data.isVs) {
+                    
+                    // 핵심 검토 사항: 홈 화면 배너(미니 위젯)에 현재 노출되고 있는 대상 토론 정보와 일치시키거나,
+                    // 혹은 해당 글이 배너에 걸려 있는 대상이라면 상세 페이지에서도 배너와 똑같은 투표 항목 및 현황이 무조건 출력되도록 설정
+                    const currentBannerTarget = allVsPosts.length > 0 ? allVsPosts[0] : null;
+                    const isBannerActivePost = currentBannerTarget && currentBannerTarget.id === postId;
+
+                    if (data.isVs || isBannerActivePost) {
                         vsArea.classList.remove('hidden');
-                        const c1 = data.vsCount1 || 0;
-                        const c2 = data.vsCount2 || 0;
+                        
+                        // 배너에 걸린 항목이면 배너의 투표 옵션/표 수를 우선 반영하고, 아니면 해당 게시물의 옵션 반영
+                        const opt1Text = (isBannerActivePost && currentBannerTarget.opt1) ? currentBannerTarget.opt1 : (data.vsOpt1 || '찬성');
+                        const opt2Text = (isBannerActivePost && currentBannerTarget.opt2) ? currentBannerTarget.opt2 : (data.vsOpt2 || '반대');
+                        const c1 = (isBannerActivePost ? currentBannerTarget.count1 : (data.vsCount1 || 0));
+                        const c2 = (isBannerActivePost ? currentBannerTarget.count2 : (data.vsCount2 || 0));
+
                         const total = c1 + c2;
                         const p1 = total > 0 ? Math.round((c1 / total) * 100) : 50;
                         const p2 = 100 - p1;
 
                         const hasVoted = localStorage.getItem(`voted_${postId}`) === 'true';
 
-                        const detailBadge = document.getElementById(`vs-badge-${postId}`);
-                        if (detailBadge) {
-                            detailBadge.style.left = `${p1}%`;
-                            const dBar1 = document.getElementById(`detail-bar1-${postId}`);
-                            const dBar2 = document.getElementById(`detail-bar2-${postId}`);
-                            if (dBar1) dBar1.style.width = `${p1}%`;
-                            if (dBar2) dBar2.style.width = `${p2}%`;
-                            return;
-                        }
-
                         vsArea.innerHTML = `
-                            <div class="text-xs font-bold text-indigo-900 mb-1">⚖️ 실시간 찬반 투표 진행 중</div>
+                            <div class="text-xs font-bold text-indigo-900 mb-1">⚖️ 실시간 찬반 토론 진행 중</div>
                             <div class="grid grid-cols-2 gap-4 items-center py-1">
                                 <button onclick="voteVs('${postId}', 1, false, '${currentRoomId}')" class="p-3 bg-white ${hasVoted ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-100'} border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 shadow-2xs transition flex flex-col items-center space-y-1">
-                                    <span>🔴 ${escapeHtml(data.vsOpt1 || '찬성')}</span>
+                                    <span>🔴 ${escapeHtml(opt1Text)}</span>
                                     <span class="text-[10px] text-slate-500">${c1}표 (${p1}%)</span>
                                 </button>
                                 
                                 <button onclick="voteVs('${postId}', 2, false, '${currentRoomId}')" class="p-3 bg-white ${hasVoted ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-100'} border border-blue-200 rounded-xl text-xs font-bold text-blue-700 shadow-2xs transition flex flex-col items-center space-y-1">
-                                    <span>🔵 ${escapeHtml(data.vsOpt2 || '반대')}</span>
+                                    <span>🔵 ${escapeHtml(opt2Text)}</span>
                                     <span class="text-[10px] text-slate-500">${c2}표 (${p2}%)</span>
                                 </button>
                             </div>
