@@ -555,9 +555,10 @@
 
         window.openHotPost = function(roomId, postId) {
             window.enterGallery(roomId);
+            // 방이 열리고 currentRoomId가 완벽히 세팅된 후 상세 글을 안전하게 호출하도록 시간 여유를 줌
             setTimeout(() => {
                 window.openPost(postId);
-            }, 100);
+            }, 300);
         }
 
         window.enterGallery = function(roomId) {
@@ -647,7 +648,12 @@
 
         window.openPost = async function(postId) {
             currentPostId = postId;
-            document.getElementById('detail-room-badge').innerText = galleries.find(g => g.id === currentRoomId).title;
+            if (!currentRoomId) return; // 방 ID가 없으면 중단
+
+            const galleryInfo = galleries.find(g => g.id === currentRoomId);
+            if (galleryInfo) {
+                document.getElementById('detail-room-badge').innerText = galleryInfo.title;
+            }
 
             document.getElementById('view-room').classList.remove('flex');
             document.getElementById('view-room').classList.add('hidden');
