@@ -44,7 +44,7 @@
     </header>
 
     <!-- Main View Area -->
-    <main class="flex-grow overflow-y-auto max-w-5xl w-full mx-auto p-4 flex flex-col">
+    <main class="flex-grow overflow-y-auto max-w-5xl w-full mx-auto p-4 flex flex-col space-y-6">
         
         <!-- VIEW 1: HOME / GALLERY LIST -->
         <div id="view-home" class="space-y-6">
@@ -66,6 +66,20 @@
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="gallery-grid"></div>
+            </div>
+
+            <!-- 실시간 HOT 글 순위표 (디시인사이드 실북갤 스타일) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+                <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-rose-500 font-black">🔥</span>
+                        <h3 class="font-bold text-slate-900 text-sm">실시간 HOT 베스트</h3>
+                    </div>
+                    <span class="text-[11px] text-slate-400">전체 갤러리 실시간 인기글 TOP 5</span>
+                </div>
+                <div id="hot-posts-container" class="divide-y divide-slate-100">
+                    <div class="p-6 text-center text-xs text-slate-400">실시간 인기글 집계 중...</div>
+                </div>
             </div>
         </div>
 
@@ -189,6 +203,7 @@
         let postsUnsubscribe = null;
         let commentsUnsubscribe = null;
         let postDetailUnsubscribe = null;
+        let hotPostsUnsubscribes = [];
 
         const appId = 'insideonside';
         const firebaseConfig = {
@@ -222,6 +237,9 @@
                 const statusEl = document.getElementById('connection-status');
                 statusEl.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-200";
                 statusEl.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> 톡 활성화됨';
+
+                // 실시간 HOT 베스트 위젯 데이터 연동 시작
+                initHotPosts();
             } catch (err) {
                 console.error("Firebase connection error:", err);
                 const statusEl = document.getElementById('connection-status');
@@ -253,6 +271,83 @@
                     </div>
                 </button>
             `).join('');
+        }
+
+        // 실시간 HOT 베스트 데이터 수집
+        function initHotPosts() {
+            hotPostsUnsubscribes.forEach(unsub => unsub());
+            hotPostsUnsubscribes = [];
+
+            const allPostsMap = new Map();
+
+            galleries.forEach(gallery => {
+                const postsCol = collection(db, 'artifacts', appId, 'public', 'data', `room_${gallery.id}_posts`);
+                const unsub = onSnapshot(postsCol, (snapshot) => {
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        allPostsMap.set(docSnap.id, {
+                            id: docSnap.id,
+                            roomId: gallery.id,
+                            roomTitle: gallery.title,
+                            title: data.title || '',
+                            views: data.views || 0,
+                            likes: data.likes || 0,
+                            createdAt: data.createdAt || 0
+                        });
+                    });
+                    renderHotPosts(Array.from(allPostsMap.values()));
+                }, (err) => {
+                    console.error("Hot posts error:", err);
+                });
+                hotPostsUnsubscribes.push(unsub);
+            });
+        }
+
+        function renderHotPosts(allPosts) {
+            const container = document.getElementById('hot-posts-container');
+            if (!container) return;
+
+            allPosts.sort((a, b) => {
+                const scoreA = (a.likes * 3) + a.views;
+                const scoreB = (b.likes * 3) + b.views;
+                if (scoreB !== scoreA) return scoreB - scoreA;
+                return b.createdAt - a.createdAt;
+            });
+
+            const topPosts = allPosts.slice(0, 5);
+
+            if (topPosts.length === 0 || topPosts.every(p => p.views === 0 && p.likes === 0)) {
+                container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">아직 반응이 집계된 인기글이 없습니다. 첫 글을 작성해 보세요!</div>`;
+                return;
+            }
+
+            container.innerHTML = topPosts.map((p, index) => {
+                const rankClass = index === 0 ? 'bg-orange-500 text-white' : index === 1 ? 'bg-amber-500 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'bg-slate-200 text-slate-700';
+                return `
+                    <div onclick="window.openHotPost('${p.roomId}', '${p.id}')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between">
+                        <div class="flex items-center space-x-3 pr-4 overflow-hidden">
+                            <span class="w-5 h-5 rounded-md flex items-center justify-center font-bold text-[11px] shrink-0 ${rankClass}">${index + 1}</span>
+                            <div class="truncate">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">${p.roomTitle}</span>
+                                    <h4 class="font-bold text-slate-800 text-xs truncate hover:text-blue-600">${escapeHtml(p.title)}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-[11px] text-slate-400 shrink-0 flex items-center space-x-2">
+                            <span>조회 ${p.views}</span>
+                            <span class="text-rose-500 font-semibold">❤️ ${p.likes}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.openHotPost = function(roomId, postId) {
+            window.enterGallery(roomId);
+            setTimeout(() => {
+                window.openPost(postId);
+            }, 100);
         }
 
         window.enterGallery = function(roomId) {
@@ -338,7 +433,6 @@
             document.getElementById('view-post').classList.remove('hidden');
             document.getElementById('view-post').classList.add('flex');
 
-            // 조회수 1 증가시키기
             try {
                 const postRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`, postId);
                 await updateDoc(postRef, {
@@ -348,7 +442,6 @@
                 console.error("Failed to increment views:", err);
             }
 
-            // 게시글 실시간 동기화 (조회수, 좋아요 실시간 반영)
             if (postDetailUnsubscribe) postDetailUnsubscribe();
             const postRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`, postId);
             postDetailUnsubscribe = onSnapshot(postRef, (docSnap) => {
