@@ -59,6 +59,11 @@
                 <div class="absolute -right-4 -bottom-6 text-7xl opacity-20 font-black">⚡</div>
             </div>
 
+            <!-- 미니 찬반 토론 위젯 -->
+            <div id="mini-vs-container" class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-indigo-100 shadow-sm p-5 space-y-4">
+                <!-- 동적 렌더링 영역 -->
+            </div>
+
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-bold text-slate-800 text-base flex items-center space-x-1.5">
@@ -132,7 +137,13 @@
                         </div>
                     </div>
                 </div>
-                <div id="detail-content" class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed min-h-[100px]"></div>
+                
+                <!-- VS 토론 상세 전용 투표 영역 -->
+                <div id="detail-vs-area" class="hidden my-4 p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-3">
+                    <!-- 동적 렌더링 -->
+                </div>
+
+                <div id="detail-content" class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed min-h-[80px]"></div>
                 
                 <!-- Like Button Area -->
                 <div class="flex justify-center pt-2">
@@ -143,10 +154,10 @@
                 </div>
             </div>
 
-            <!-- Comments Section -->
+            <!-- Comments Section (토론 의견 나누는 댓글창) -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-1">
-                    <span>💬</span><span>실시간 댓글 <span id="comment-count" class="text-blue-600">0</span></span>
+                    <span>💬</span><span>실시간 토론 댓글 <span id="comment-count" class="text-blue-600">0</span></span>
                 </h3>
 
                 <div id="comments-list" class="space-y-3 max-h-60 overflow-y-auto pr-1"></div>
@@ -155,7 +166,7 @@
                     <input 
                         type="text" 
                         id="comment-input" 
-                        placeholder="실시간 댓글을 남겨보세요..." 
+                        placeholder="토론에 대한 생각을 실시간 댓글로 남겨보세요..." 
                         autocomplete="off"
                         required
                         class="flex-grow bg-slate-50 border border-slate-200 text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:bg-white transition"
@@ -182,9 +193,22 @@
                     <label class="block text-xs font-medium text-slate-500 mb-1">제목</label>
                     <input type="text" id="post-title-input" required placeholder="제목을 입력하세요" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500">
                 </div>
+                
+                <!-- 찬반 토론 옵션 체크박스 -->
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                    <label class="flex items-center space-x-2 cursor-pointer select-none">
+                        <input type="checkbox" id="is-vs-checkbox" onchange="toggleVsInputs()" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                        <span class="text-xs font-bold text-indigo-900">⚖️ 이 글을 '찬반 토론(VS)'으로 등록하기</span>
+                    </label>
+                    <div id="vs-inputs-box" class="hidden grid grid-cols-2 gap-2 pt-1">
+                        <input type="text" id="vs-opt1-input" placeholder="찬성 항목 (예: 부먹)" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+                        <input type="text" id="vs-opt2-input" placeholder="반대 항목 (예: 찍먹)" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-xs font-medium text-slate-500 mb-1">내용</label>
-                    <textarea id="post-content-input" rows="5" required placeholder="자유롭게 이야기를 남겨주세요..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                    <textarea id="post-content-input" rows="4" required placeholder="자유롭게 이야기를 남겨주세요..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
                 </div>
                 <div class="flex justify-end space-x-2 pt-2">
                     <button type="button" onclick="closeWriteModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">취소</button>
@@ -206,6 +230,7 @@
         let commentsUnsubscribe = null;
         let postDetailUnsubscribe = null;
         let hotPostsUnsubscribes = [];
+        let allVsPosts = [];
 
         const appId = 'insideonside';
         const firebaseConfig = {
@@ -241,6 +266,7 @@
                 statusEl.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> 톡 활성화됨';
 
                 initHotPosts();
+                initVsWidget();
             } catch (err) {
                 console.error("Firebase connection error:", err);
                 const statusEl = document.getElementById('connection-status');
@@ -274,6 +300,7 @@
             `).join('');
         }
 
+        // 실시간 HOT 베스트 데이터 수집
         function initHotPosts() {
             hotPostsUnsubscribes.forEach(unsub => unsub());
             hotPostsUnsubscribes = [];
@@ -343,6 +370,106 @@
             }).join('');
         }
 
+        // 실시간 찬반 토론 위젯 연동 (기본 예시 포함)
+        function initVsWidget() {
+            const allVsMap = new Map();
+
+            galleries.forEach(gallery => {
+                const postsCol = collection(db, 'artifacts', appId, 'public', 'data', `room_${gallery.id}_posts`);
+                onSnapshot(postsCol, (snapshot) => {
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data.isVs) {
+                            allVsMap.set(docSnap.id, {
+                                id: docSnap.id,
+                                roomId: gallery.id,
+                                roomTitle: gallery.title,
+                                title: data.title || '',
+                                opt1: data.vsOpt1 || '찬성',
+                                opt2: data.vsOpt2 || '반대',
+                                count1: data.vsCount1 || 0,
+                                count2: data.vsCount2 || 0,
+                                createdAt: data.createdAt || 0
+                            });
+                        }
+                    });
+                    allVsPosts = Array.from(allVsMap.values());
+                    renderVsWidget();
+                });
+            });
+        }
+
+        function renderVsWidget() {
+            const container = document.getElementById('mini-vs-container');
+            if (!container) return;
+
+            let target;
+            if (allVsPosts.length > 0) {
+                allVsPosts.sort((a, b) => (b.count1 + b.count2) - (a.count1 + a.count2) || b.createdAt - a.createdAt);
+                target = allVsPosts[0];
+            } else {
+                target = {
+                    id: null,
+                    isDefault: true,
+                    title: "평생 탕수육 [부먹 vs 찍먹] 당신의 선택은?",
+                    roomTitle: "유머/썰 갤러리",
+                    opt1: "부먹 (소스 부어 먹기)",
+                    opt2: "찍먹 (소스 찍어 먹기)",
+                    count1: 142,
+                    count2: 218
+                };
+            }
+
+            const total = target.count1 + target.count2;
+            const p1 = total > 0 ? Math.round((target.count1 / total) * 100) : 50;
+            const p2 = 100 - p1;
+
+            container.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-indigo-600 font-black">⚖️</span>
+                        <h3 class="font-bold text-slate-900 text-sm">실시간 찬반 토론</h3>
+                    </div>
+                    <span class="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">${target.roomTitle}</span>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 text-sm cursor-pointer hover:text-indigo-600" ${!target.isDefault ? `onclick="window.openHotPost('${target.roomId}', '${target.id}')"` : ''}>
+                        ${escapeHtml(target.title)}
+                    </h4>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="voteVs('${target.id}', 1, ${target.isDefault})" class="p-2.5 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 shadow-2xs transition flex flex-col items-center space-y-1">
+                            <span>🔴 ${escapeHtml(target.opt1)}</span>
+                            <span class="text-[10px] text-slate-400">${target.count1}표 (${p1}%)</span>
+                        </button>
+                        <button onclick="voteVs('${target.id}', 2, ${target.isDefault})" class="p-2.5 bg-white hover:bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-700 shadow-2xs transition flex flex-col items-center space-y-1">
+                            <span>🔵 ${escapeHtml(target.opt2)}</span>
+                            <span class="text-[10px] text-slate-400">${target.count2}표 (${p2}%)</span>
+                        </button>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">
+                        <div class="bg-indigo-500 transition-all duration-500" style="width: ${p1}%"></div>
+                        <div class="bg-blue-500 transition-all duration-500" style="width: ${p2}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.voteVs = async function(postId, optNum, isDefault) {
+            if (isDefault) {
+                alert("기본 예시 토론입니다! 직접 우측 상단 '글쓰기' 버튼을 눌러 나만의 찬반 토론을 열어보세요!");
+                return;
+            }
+            if (!postId || !currentRoomId) return;
+            try {
+                const postRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`, postId);
+                await updateDoc(postRef, {
+                    [optNum === 1 ? 'vsCount1' : 'vsCount2']: increment(1)
+                });
+            } catch (err) {
+                console.error("VS vote error:", err);
+            }
+        }
+
         window.openHotPost = function(roomId, postId) {
             window.enterGallery(roomId);
             setTimeout(() => {
@@ -409,7 +536,10 @@
                 container.innerHTML = posts.map(p => `
                     <div onclick="window.openPost('${p.id}')" class="p-4 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between border-b border-slate-50">
                         <div class="space-y-1 pr-4">
-                            <h4 class="font-bold text-slate-800 text-sm hover:text-blue-600">${escapeHtml(p.title)}</h4>
+                            <div class="flex items-center space-x-1.5">
+                                ${p.isVs ? '<span class="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">VS 토론</span>' : ''}
+                                <h4 class="font-bold text-slate-800 text-sm hover:text-blue-600">${escapeHtml(p.title)}</h4>
+                            </div>
                             <p class="text-xs text-slate-500 line-clamp-1">${escapeHtml(p.content)}</p>
                         </div>
                         <div class="text-right shrink-0">
@@ -453,6 +583,37 @@
                     document.getElementById('detail-content').innerText = data.content;
                     document.getElementById('detail-stats').innerText = `조회 ${data.views || 0} · 좋아요 ${data.likes || 0}`;
                     document.getElementById('detail-like-count').innerText = data.likes || 0;
+
+                    // 상세 페이지 내 VS 토론 바 렌더링
+                    const vsArea = document.getElementById('detail-vs-area');
+                    if (data.isVs) {
+                        vsArea.classList.remove('hidden');
+                        const c1 = data.vsCount1 || 0;
+                        const c2 = data.vsCount2 || 0;
+                        const total = c1 + c2;
+                        const p1 = total > 0 ? Math.round((c1 / total) * 100) : 50;
+                        const p2 = 100 - p1;
+
+                        vsArea.innerHTML = `
+                            <div class="text-xs font-bold text-indigo-900 mb-1">⚖️ 실시간 찬반 투표 진행 중</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="voteVs('${postId}', 1, false)" class="p-2.5 bg-white hover:bg-indigo-100 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 shadow-2xs transition flex flex-col items-center space-y-1">
+                                    <span>🔴 ${escapeHtml(data.vsOpt1)}</span>
+                                    <span class="text-[10px] text-slate-500">${c1}표 (${p1}%)</span>
+                                </button>
+                                <button onclick="voteVs('${postId}', 2, false)" class="p-2.5 bg-white hover:bg-blue-100 border border-blue-200 rounded-xl text-xs font-bold text-blue-700 shadow-2xs transition flex flex-col items-center space-y-1">
+                                    <span>🔵 ${escapeHtml(data.vsOpt2)}</span>
+                                    <span class="text-[10px] text-slate-500">${c2}표 (${p2}%)</span>
+                                </button>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">
+                                <div class="bg-indigo-500 transition-all duration-500" style="width: ${p1}%"></div>
+                                <div class="bg-blue-500 transition-all duration-500" style="width: ${p2}%"></div>
+                            </div>
+                        `;
+                    } else {
+                        vsArea.classList.add('hidden');
+                    }
                 }
             });
 
@@ -489,7 +650,7 @@
                 document.getElementById('comment-count').innerText = comments.length;
 
                 if (comments.length === 0) {
-                    container.innerHTML = `<div class="text-center text-xs text-slate-400 py-4">첫 번째 실시간 댓글을 남겨보세요!</div>`;
+                    container.innerHTML = `<div class="text-center text-xs text-slate-400 py-4">첫 번째 토론 댓글을 남겨보세요!</div>`;
                     return;
                 }
 
@@ -539,12 +700,30 @@
             document.getElementById('write-modal').classList.add('hidden');
             document.getElementById('post-title-input').value = '';
             document.getElementById('post-content-input').value = '';
+            document.getElementById('is-vs-checkbox').checked = false;
+            document.getElementById('vs-inputs-box').classList.add('hidden');
+            document.getElementById('vs-opt1-input').value = '';
+            document.getElementById('vs-opt2-input').value = '';
+        }
+
+        window.toggleVsInputs = function() {
+            const isChecked = document.getElementById('is-vs-checkbox').checked;
+            const box = document.getElementById('vs-inputs-box');
+            if (isChecked) {
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+            }
         }
 
         window.submitPost = async function(event) {
             event.preventDefault();
             const title = document.getElementById('post-title-input').value.trim();
             const content = document.getElementById('post-content-input').value.trim();
+            const isVs = document.getElementById('is-vs-checkbox').checked;
+            const vsOpt1 = document.getElementById('vs-opt1-input').value.trim();
+            const vsOpt2 = document.getElementById('vs-opt2-input').value.trim();
+
             if (!title || !content || !currentRoomId) return;
 
             const myNickname = localStorage.getItem('dc_nickname') || '익명';
@@ -552,14 +731,24 @@
 
             try {
                 const postsCol = collection(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`);
-                await addDoc(postsCol, {
+                const postData = {
                     title: title,
                     content: content,
                     nickname: myNickname,
                     views: 0,
                     likes: 0,
-                    createdAt: Date.now()
-                });
+                    createdAt: Date.now(),
+                    isVs: isVs
+                };
+
+                if (isVs) {
+                    postData.vsOpt1 = vsOpt1 || '찬성';
+                    postData.vsOpt2 = vsOpt2 || '반대';
+                    postData.vsCount1 = 0;
+                    postData.vsCount2 = 0;
+                }
+
+                await addDoc(postsCol, postData);
             } catch (err) {
                 console.error("Failed to submit post:", err);
             }
