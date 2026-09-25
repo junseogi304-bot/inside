@@ -473,6 +473,10 @@
                 return;
             }
 
+            const clickAction = target.isDefault ? 
+                `alert("기본 예시 토론입니다! 직접 우측 상단 '글쓰기' 버튼을 눌러 나만의 찬반 토론을 열어보세요!");` : 
+                `window.openHotPost('${target.roomId}', '${target.id}')`;
+
             container.innerHTML = `
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
@@ -480,14 +484,14 @@
                         <h3 class="font-bold text-slate-900 text-sm">실시간 찬반 토론</h3>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-[11px] text-slate-500 font-medium hidden sm:inline">👆 클릭하여 인사이드 사람들의 반응도 확인해보세요</span>
+                        <span class="text-[11px] text-slate-500 font-medium hidden sm:inline cursor-pointer hover:text-indigo-600 transition" onclick="${clickAction}">👆 클릭하여 인사이드 사람들의 반응도 확인해보세요</span>
                         <span class="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">${target.roomTitle}</span>
                     </div>
                 </div>
                 <div class="space-y-3">
-                    <h4 id="vs-title-${target.id}" class="font-bold text-slate-800 text-sm cursor-pointer hover:text-indigo-600 flex items-center justify-between" ${!target.isDefault ? `onclick="window.openHotPost('${target.roomId}', '${target.id}')"` : ''}>
+                    <h4 id="vs-title-${target.id}" class="font-bold text-slate-800 text-sm cursor-pointer hover:text-indigo-600 flex items-center justify-between transition" onclick="${clickAction}">
                         <span>${escapeHtml(target.title)}</span>
-                        <span class="text-[11px] text-slate-400 font-normal sm:hidden">👆 반응 보기</span>
+                        <span class="text-[11px] text-slate-400 font-normal">👆 반응 보기</span>
                     </h4>
                     
                     <div class="grid grid-cols-2 gap-4 items-center pt-1">
