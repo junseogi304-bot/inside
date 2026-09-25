@@ -46,31 +46,36 @@
     <!-- Main View Area -->
     <main class="flex-grow overflow-y-auto max-w-5xl w-full mx-auto p-4 flex flex-col">
         
-        <!-- VIEW 1: HOME / GALLERY LIST -->
+        <!-- VIEW 1: HOME / GALLERY LIST (4 ROOMS) -->
         <div id="view-home" class="space-y-6">
+            <!-- Notice Banner -->
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
                 <div class="relative z-10 space-y-2">
                     <span class="bg-white/20 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider">LIVE CLOUD</span>
                     <h2 class="text-xl font-bold">링크만 공유하면 누구나 실시간 대화 가능!</h2>
-                    <p class="text-xs text-blue-100 leading-relaxed max-w-xl">원하는 갤러리(방)에 입장하여 실시간으로 올라오는 다른 사람들의 글과 댓글을 확인하고 소통해 보세요.</p>
+                    <p class="text-xs text-blue-100 leading-relaxed max-w-xl">4가지 방(갤러리)에 입장하여 실시간으로 올라오는 다른 사람들의 글과 좋아요, 조회수를 확인하고 소통해 보세요.</p>
                 </div>
                 <div class="absolute -right-4 -bottom-6 text-7xl opacity-20 font-black">⚡</div>
             </div>
 
+            <!-- Galleries Grid -->
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-bold text-slate-800 text-base flex items-center space-x-1.5">
-                        <span>📂</span><span>실시간 갤러리 목록</span>
+                        <span>📂</span><span>실시간 갤러리 목록 (4개 방)</span>
                     </h3>
                     <span class="text-xs text-slate-400">클릭해서 실시간 방으로 입장하세요</span>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="gallery-grid"></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="gallery-grid">
+                    <!-- Dynamic Galleries Rendered via JS -->
+                </div>
             </div>
         </div>
 
         <!-- VIEW 2: BOARD / ROOM VIEW -->
         <div id="view-room" class="hidden flex-col flex-grow space-y-4">
+            <!-- Room Header Banner -->
             <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between shrink-0">
                 <div class="flex items-center space-x-3">
                     <button onclick="goHome()" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center text-slate-600 transition font-bold">←</button>
@@ -87,12 +92,15 @@
                 </button>
             </div>
 
+            <!-- Post List Table / Cards -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex-grow overflow-hidden flex flex-col">
                 <div class="p-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 flex justify-between">
                     <span>실시간 제목 및 내용</span>
-                    <span>작성자 / 시간</span>
+                    <span>작성자 / 조회수 / 좋아요 / 시간</span>
                 </div>
-                <div id="posts-container" class="divide-y divide-slate-100 overflow-y-auto flex-grow"></div>
+                <div id="posts-container" class="divide-y divide-slate-100 overflow-y-auto flex-grow">
+                    <!-- Posts will be injected here -->
+                </div>
             </div>
         </div>
 
@@ -102,7 +110,12 @@
                 <button onclick="backToRoom()" class="flex items-center space-x-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition">
                     <span>←</span><span>목록으로</span>
                 </button>
-                <span id="detail-room-badge" class="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg"></span>
+                <div class="flex items-center space-x-3">
+                    <span id="detail-room-badge" class="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg"></span>
+                    <button onclick="handleLike()" id="detail-like-btn" class="flex items-center space-x-1 text-xs font-bold px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-100 transition shadow-xs">
+                        <span>❤️</span> <span id="detail-like-count">0</span>
+                    </button>
+                </div>
             </div>
 
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
@@ -110,7 +123,10 @@
                     <h2 id="detail-title" class="text-lg font-bold text-slate-900 mb-2"></h2>
                     <div class="flex items-center justify-between text-xs text-slate-400">
                         <span id="detail-author" class="font-semibold text-slate-600"></span>
-                        <span id="detail-time"></span>
+                        <div class="flex items-center space-x-3">
+                            <span id="detail-views">조회 0</span>
+                            <span id="detail-time"></span>
+                        </div>
                     </div>
                 </div>
                 <div id="detail-content" class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed min-h-[100px]"></div>
@@ -122,7 +138,9 @@
                     <span>💬</span><span>실시간 댓글 <span id="comment-count" class="text-blue-600">0</span></span>
                 </h3>
 
-                <div id="comments-list" class="space-y-3 max-h-60 overflow-y-auto pr-1"></div>
+                <div id="comments-list" class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    <!-- Comments injected here -->
+                </div>
 
                 <form onsubmit="submitComment(event)" class="flex space-x-2 pt-2 border-t border-slate-100">
                     <input 
@@ -167,26 +185,24 @@
         </div>
     </div>
 
-    <!-- Firebase SDK Imports & Direct Firestore Logic -->
+    <!-- Firebase SDK Imports & Realtime Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, doc, updateDoc, increment, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        let db;
+        let db, auth, currentUser;
         let currentRoomId = null;
         let currentPostId = null;
         let postsUnsubscribe = null;
         let commentsUnsubscribe = null;
+        let postDetailUnsubscribe = null;
 
-        const appId = 'insideonside';
-        const firebaseConfig = {
-            apiKey: "AIzaSyAYYX1ONHIIKvp35VOn-emjQRSk2WYoirM",
-            authDomain: "insideonside.firebaseapp.com",
-            projectId: "insideonside",
-            storageBucket: "insideonside.firebasestorage.app",
-            messagingSenderId: "821707087552",
-            appId: "1:821707087552:web:0850d20fee543ac94ad725",
-            measurementId: "G-675070ZSZL"
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-community-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-key",
+            authDomain: "demo.firebaseapp.com",
+            projectId: "demo-project"
         };
 
         const galleries = [
@@ -202,14 +218,22 @@
             return `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${animals[Math.floor(Math.random() * animals.length)]} #${Math.floor(Math.random() * 900) + 100}`;
         }
 
-        function initFirebase() {
+        async function initFirebase() {
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                currentUser = auth.currentUser;
 
                 const statusEl = document.getElementById('connection-status');
                 statusEl.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-200";
-                statusEl.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> 톡 활성화됨';
+                statusEl.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> 실시간 연동됨';
             } catch (err) {
                 console.error("Firebase connection error:", err);
                 const statusEl = document.getElementById('connection-status');
@@ -262,6 +286,7 @@
         window.goHome = function() {
             if (postsUnsubscribe) postsUnsubscribe();
             if (commentsUnsubscribe) commentsUnsubscribe();
+            if (postDetailUnsubscribe) postDetailUnsubscribe();
             document.getElementById('view-room').classList.remove('flex');
             document.getElementById('view-room').classList.add('hidden');
             document.getElementById('view-post').classList.remove('flex');
@@ -271,6 +296,7 @@
 
         window.backToRoom = function() {
             if (commentsUnsubscribe) commentsUnsubscribe();
+            if (postDetailUnsubscribe) postDetailUnsubscribe();
             document.getElementById('view-post').classList.remove('flex');
             document.getElementById('view-post').classList.add('hidden');
             document.getElementById('view-room').classList.remove('hidden');
@@ -298,37 +324,81 @@
                 }
 
                 container.innerHTML = posts.map(p => `
-                    <div onclick="window.openPost('${p.id}', '${escapeAttr(p.title)}', '${escapeAttr(p.content)}', '${escapeAttr(p.nickname)}', '${p.createdAt || Date.now()}')" class="p-4 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between border-b border-slate-50">
+                    <div onclick="window.openPost('${p.id}')" class="p-4 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between border-b border-slate-50">
                         <div class="space-y-1 pr-4">
                             <h4 class="font-bold text-slate-800 text-sm hover:text-blue-600">${escapeHtml(p.title)}</h4>
                             <p class="text-xs text-slate-500 line-clamp-1">${escapeHtml(p.content)}</p>
                         </div>
-                        <div class="text-right shrink-0">
-                            <div class="text-xs font-medium text-slate-700">${escapeHtml(p.nickname)}</div>
-                            <div class="text-[10px] text-slate-400 mt-0.5">${formatTime(p.createdAt)}</div>
+                        <div class="flex items-center space-x-4 shrink-0 text-right">
+                            <div class="text-[11px] text-slate-500 space-x-2">
+                                <span>👁️ ${p.views || 0}</span>
+                                <span>❤️ ${p.likes || 0}</span>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium text-slate-700">${escapeHtml(p.nickname)}</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">${formatTime(p.createdAt)}</div>
+                            </div>
                         </div>
                     </div>
                 `).join('');
             }, (error) => {
                 console.error("Posts subscription error:", error);
-                container.innerHTML = `<div class="p-12 text-center text-xs text-rose-500">데이터 로딩 실패. Firestore 규칙(Rules)을 확인해주세요.</div>`;
+                container.innerHTML = `<div class="p-12 text-center text-xs text-rose-500">데이터를 불러오는 중 오류가 발생했습니다.</div>`;
             });
         }
 
-        window.openPost = function(postId, title, content, nickname, createdAt) {
+        window.openPost = async function(postId) {
             currentPostId = postId;
-            document.getElementById('detail-room-badge').innerText = galleries.find(g => g.id === currentRoomId).title;
-            document.getElementById('detail-title').innerText = title;
-            document.getElementById('detail-author').innerText = `작성자: ${nickname}`;
-            document.getElementById('detail-time').innerText = formatTime(createdAt);
-            document.getElementById('detail-content').innerText = content;
+            const info = galleries.find(g => g.id === currentRoomId);
+
+            document.getElementById('detail-room-badge').innerText = info.title;
+
+            // Increment view count securely using increment
+            try {
+                const postRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`, postId);
+                await updateDoc(postRef, {
+                    views: increment(1)
+                });
+            } catch (err) {
+                console.error("Failed to increment views:", err);
+            }
 
             document.getElementById('view-room').classList.remove('flex');
             document.getElementById('view-room').classList.add('hidden');
             document.getElementById('view-post').classList.remove('hidden');
             document.getElementById('view-post').classList.add('flex');
 
+            listenPostDetail(postId);
             listenComments(postId);
+        }
+
+        function listenPostDetail(postId) {
+            if (postDetailUnsubscribe) postDetailUnsubscribe();
+            const postRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`, postId);
+
+            postDetailUnsubscribe = onSnapshot(postRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('detail-title').innerText = data.title;
+                    document.getElementById('detail-author').innerText = `작성자: ${data.nickname}`;
+                    document.getElementById('detail-time').innerText = formatTime(data.createdAt);
+                    document.getElementById('detail-content').innerText = data.content;
+                    document.getElementById('detail-views').innerText = `조회 ${data.views || 0}`;
+                    document.getElementById('detail-like-count').innerText = data.likes || 0;
+                }
+            });
+        }
+
+        window.handleLike = async function() {
+            if (!currentRoomId || !currentPostId) return;
+            try {
+                const postRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`, currentPostId);
+                await updateDoc(postRef, {
+                    likes: increment(1)
+                });
+            } catch (err) {
+                console.error("Failed to add like:", err);
+            }
         }
 
         function listenComments(postId) {
@@ -416,6 +486,8 @@
                     title: title,
                     content: content,
                     nickname: myNickname,
+                    views: 0,
+                    likes: 0,
                     createdAt: Date.now()
                 });
             } catch (err) {
@@ -425,10 +497,6 @@
 
         function escapeHtml(str) {
             return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
-
-        function escapeAttr(str) {
-            return String(str || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
         }
 
         function formatTime(timestamp) {
