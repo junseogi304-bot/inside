@@ -711,12 +711,12 @@
                             <div class="text-xs font-bold text-indigo-900 mb-1">⚖️ 실시간 찬반 투표 진행 중</div>
                             <div class="grid grid-cols-2 gap-4 items-center py-1">
                                 <button onclick="voteVs('${postId}', 1, false, '${currentRoomId}')" class="p-3 bg-white ${hasVoted ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-100'} border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 shadow-2xs transition flex flex-col items-center space-y-1">
-                                    <span>🔴 ${escapeHtml(data.vsOpt1)}</span>
+                                    <span>🔴 ${escapeHtml(data.vsOpt1 || '찬성')}</span>
                                     <span class="text-[10px] text-slate-500">${c1}표 (${p1}%)</span>
                                 </button>
                                 
                                 <button onclick="voteVs('${postId}', 2, false, '${currentRoomId}')" class="p-3 bg-white ${hasVoted ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-100'} border border-blue-200 rounded-xl text-xs font-bold text-blue-700 shadow-2xs transition flex flex-col items-center space-y-1">
-                                    <span>🔵 ${escapeHtml(data.vsOpt2)}</span>
+                                    <span>🔵 ${escapeHtml(data.vsOpt2 || '반대')}</span>
                                     <span class="text-[10px] text-slate-500">${c2}표 (${p2}%)</span>
                                 </button>
                             </div>
