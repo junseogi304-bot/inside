@@ -189,7 +189,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, updateDoc, increment, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth, currentUser;
         let currentRoomId = null;
@@ -200,8 +200,8 @@
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-community-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "demo-key",
-            authDomain: "demo.firebaseapp.com",
+            apiKey: "AIzaSyDummyKeyForFallbackTestingOnly",
+            authDomain: "demo-project.firebaseapp.com",
             projectId: "demo-project"
         };
 
@@ -353,7 +353,7 @@
 
             document.getElementById('detail-room-badge').innerText = info.title;
 
-            // Increment view count securely using increment
+            // Increment view count securely using real-time increment
             try {
                 const postRef = doc(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`, postId);
                 await updateDoc(postRef, {
