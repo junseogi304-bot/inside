@@ -3,301 +3,465 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>실시간 익명 커뮤니티</title>
-    <!-- Tailwind CSS -->
+    <title>인사이드 톡 - 실시간 커뮤니티 포털</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK (실시간 공유를 위한 클라우드 DB) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Pretendard', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans">
-    <div class="max-w-2xl mx-auto bg-white min-h-screen shadow-lg flex flex-col">
-        <!-- 상단 헤더 -->
-        <header class="bg-indigo-600 text-white p-4 flex justify-between items-center sticky top-0 z-10">
-            <h1 class="text-xl font-bold cursor-pointer" onclick="goHome()">💬 실시간 익명 커뮤니티</h1>
-            <div id="userInfo" class="text-sm bg-indigo-700 px-3 py-1 rounded-full">닉네임 로딩중...</div>
-        </header>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col justify-between overflow-hidden">
 
-        <!-- 메인 컨텐츠 영역 -->
-        <main class="flex-1 p-4 pb-20">
-            <!-- 방 선택 화면 -->
-            <div id="homeView" class="space-y-4">
-                <div class="bg-indigo-50 p-4 rounded-xl text-indigo-800 text-sm mb-2">
-                    ✨ 링크를 공유하고 들어온 사람들과 <b>실시간으로 글과 댓글을 나누며</b> 대화해 보세요!
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <button onclick="goHome()" class="flex items-center space-x-2 text-left group">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-blue-100 group-hover:bg-blue-700 transition">💬</div>
+                <div>
+                    <h1 class="font-black text-slate-900 text-lg leading-none tracking-tight">인사이드 톡</h1>
+                    <span class="text-[11px] text-blue-600 font-semibold">실시간 클라우드 커뮤니티</span>
                 </div>
-                <h2 class="text-lg font-bold text-gray-800 mb-2">대화 방을 선택하세요</h2>
-                <div onclick="enterRoom('romance')" class="bg-pink-50 border border-pink-200 p-5 rounded-xl cursor-pointer hover:bg-pink-100 transition shadow-sm">
-                    <h3 class="text-lg font-bold text-pink-600">❤️ 연애고민 방</h3>
-                    <p class="text-sm text-gray-600 mt-1">썸, 연애, 이별 등 솔직한 사랑 이야기</p>
+            </button>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <div id="connection-status" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-200">
+                <span class="w-1.5 h-1.5 mr-1.5 bg-amber-500 rounded-full animate-pulse"></span> 연결 중...
+            </div>
+            <div id="nickname-badge" class="bg-slate-100 text-slate-700 font-bold text-xs px-3 py-1.5 rounded-xl border border-slate-200 truncate max-w-[120px]">
+                익명
+            </div>
+            <button onclick="shareLink()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                <span class="hidden sm:inline">링크 복사</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main View Area -->
+    <main class="flex-grow overflow-y-auto max-w-5xl w-full mx-auto p-4 flex flex-col">
+        
+        <!-- VIEW 1: HOME / GALLERY LIST -->
+        <div id="view-home" class="space-y-6">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                <div class="relative z-10 space-y-2">
+                    <span class="bg-white/20 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider">LIVE CLOUD</span>
+                    <h2 class="text-xl font-bold">링크만 공유하면 누구나 실시간 대화 가능!</h2>
+                    <p class="text-xs text-blue-100 leading-relaxed max-w-xl">원하는 갤러리(방)에 입장하여 실시간으로 올라오는 다른 사람들의 글과 댓글을 확인하고 소통해 보세요.</p>
                 </div>
-                <div onclick="enterRoom('life')" class="bg-blue-50 border border-blue-200 p-5 rounded-xl cursor-pointer hover:bg-blue-100 transition shadow-sm">
-                    <h3 class="text-lg font-bold text-blue-600">🧠 인생고민 방</h3>
-                    <p class="text-sm text-gray-600 mt-1">취업, 진로, 인간관계 등 사는 이야기</p>
-                </div>
+                <div class="absolute -right-4 -bottom-6 text-7xl opacity-20 font-black">⚡</div>
             </div>
 
-            <!-- 게시글 목록 및 대화 방 화면 -->
-            <div id="roomView" class="hidden flex flex-col h-[calc(100vh-140px)]">
-                <div class="flex items-center justify-between mb-3 pb-2 border-b">
-                    <button onclick="goHome()" class="text-sm bg-gray-200 px-3 py-1.5 rounded-lg font-medium hover:bg-gray-300">← 방 목록으로</button>
-                    <h2 id="roomTitle" class="font-bold text-lg text-gray-800">방 이름</h2>
-                    <span class="w-12"></span>
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center space-x-1.5">
+                        <span>📂</span><span>실시간 갤러리 목록</span>
+                    </h3>
+                    <span class="text-xs text-slate-400">클릭해서 실시간 방으로 입장하세요</span>
                 </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="gallery-grid"></div>
+            </div>
+        </div>
 
-                <!-- 글 목록 리스트 (실시간 동기화) -->
-                <div id="postList" class="flex-1 overflow-y-auto space-y-3 pr-1 mb-3">
-                    <p class="text-center text-gray-400 mt-10">게시글을 불러오는 중...</p>
+        <!-- VIEW 2: BOARD / ROOM VIEW -->
+        <div id="view-room" class="hidden flex-col flex-grow space-y-4">
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-3">
+                    <button onclick="goHome()" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center text-slate-600 transition font-bold">←</button>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span id="current-room-icon" class="text-lg"></span>
+                            <h2 id="current-room-title" class="font-bold text-slate-900 text-base"></h2>
+                        </div>
+                        <p id="current-room-desc" class="text-xs text-slate-400"></p>
+                    </div>
                 </div>
-
-                <!-- 새 글 작성 입력창 -->
-                <div class="bg-white pt-2 border-t flex gap-2">
-                    <input type="text" id="postInput" placeholder="모두가 볼 수 있는 글을 남겨보세요..." class="flex-1 border rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 text-sm">
-                    <button onclick="writePost()" class="bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition text-sm">글쓰기</button>
-                </div>
+                <button onclick="openWriteModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center space-x-1">
+                    <span>✏️</span><span>글쓰기</span>
+                </button>
             </div>
 
-            <!-- 개별 게시글 상세 및 댓글 방 화면 -->
-            <div id="detailView" class="hidden flex flex-col h-[calc(100vh-140px)]">
-                <div class="flex items-center justify-between mb-3 pb-2 border-b">
-                    <button onclick="backToRoom()" class="text-sm bg-gray-200 px-3 py-1.5 rounded-lg font-medium hover:bg-gray-300">← 목록으로</button>
-                    <h2 class="font-bold text-lg text-gray-800">댓글 토론방</h2>
-                    <span class="w-12"></span>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex-grow overflow-hidden flex flex-col">
+                <div class="p-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 flex justify-between">
+                    <span>실시간 제목 및 내용</span>
+                    <span>작성자 / 시간</span>
                 </div>
-
-                <!-- 선택된 원본 글 -->
-                <div id="detailPostBox" class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl mb-3">
-                    <!-- 원본 글 내용이 들어갑니다 -->
-                </div>
-
-                <!-- 댓글 목록 (실시간 동기화) -->
-                <div class="text-xs font-bold text-gray-500 mb-1">실시간 댓글</div>
-                <div id="commentList" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3">
-                    <!-- 댓글들이 들어갑니다 -->
-                </div>
-
-                <!-- 댓글 입력창 -->
-                <div class="bg-white pt-2 border-t flex gap-2">
-                    <input type="text" id="commentInput" placeholder="따뜻한 댓글을 남겨주세요..." class="flex-1 border rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 text-sm">
-                    <button onclick="writeComment()" class="bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition text-sm">등록</button>
-                </div>
+                <div id="posts-container" class="divide-y divide-slate-100 overflow-y-auto flex-grow"></div>
             </div>
-        </main>
+        </div>
+
+        <!-- VIEW 3: POST DETAIL & COMMENTS VIEW -->
+        <div id="view-post" class="hidden flex-col flex-grow space-y-4">
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between shrink-0">
+                <button onclick="backToRoom()" class="flex items-center space-x-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition">
+                    <span>←</span><span>목록으로</span>
+                </button>
+                <span id="detail-room-badge" class="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg"></span>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 id="detail-title" class="text-lg font-bold text-slate-900 mb-2"></h2>
+                    <div class="flex items-center justify-between text-xs text-slate-400">
+                        <span id="detail-author" class="font-semibold text-slate-600"></span>
+                        <span id="detail-time"></span>
+                    </div>
+                </div>
+                <div id="detail-content" class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed min-h-[100px]"></div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-1">
+                    <span>💬</span><span>실시간 댓글 <span id="comment-count" class="text-blue-600">0</span></span>
+                </h3>
+
+                <div id="comments-list" class="space-y-3 max-h-60 overflow-y-auto pr-1"></div>
+
+                <form onsubmit="submitComment(event)" class="flex space-x-2 pt-2 border-t border-slate-100">
+                    <input 
+                        type="text" 
+                        id="comment-input" 
+                        placeholder="실시간 댓글을 남겨보세요..." 
+                        autocomplete="off"
+                        required
+                        class="flex-grow bg-slate-50 border border-slate-200 text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                    >
+                    <button type="submit" class="bg-slate-900 hover:bg-blue-600 text-white font-medium px-4 py-2.5 rounded-xl text-xs transition shrink-0">
+                        등록
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Write Post Modal -->
+    <div id="write-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-slate-900">새 글 작성하기</h3>
+                <button onclick="closeWriteModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+            </div>
+            
+            <form onsubmit="submitPost(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">제목</label>
+                    <input type="text" id="post-title-input" required placeholder="제목을 입력하세요" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">내용</label>
+                    <textarea id="post-content-input" rows="5" required placeholder="자유롭게 이야기를 남겨주세요..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeWriteModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">취소</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition">등록하기</button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- Firebase 실시간 데이터 통신 로직 -->
-    <script>
-        // 공개용 실시간 테스트 데이터베이스 연동 설정
+    <!-- Firebase SDK Imports & Realtime Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let db, auth;
+        let currentRoomId = null;
+        let currentPostId = null;
+        let postsUnsubscribe = null;
+        let commentsUnsubscribe = null;
+
+        // 사용자가 제공한 실제 파이어베이스 설정 및 프로젝트 ID 적용
+        const appId = 'insideonside-community';
         const firebaseConfig = {
-            apiKey: "AIzaSyDummyKeyForPublicTest12345",
-            authDomain: "public-chat-test.firebaseapp.com",
-            projectId: "public-chat-test"
+            apiKey: "AIzaSyAYYX1ONHIIKvp35VOn-emjQRSk2WYoirM",
+            authDomain: "insideonside.firebaseapp.com",
+            projectId: "insideonside",
+            storageBucket: "insideonside.firebasestorage.app",
+            messagingSenderId: "821707087552",
+            appId: "1:821707087552:web:0850d20fee543ac94ad725",
+            measurementId: "G-675070ZSZL"
         };
 
-        // 파이어베이스 초기화 (오류 발생 시 로컬 스토리지만으로도 즉시 동작하도록 백업 연동)
-        let db;
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
+        const galleries = [
+            { id: 'romance', title: '연애고민 갤러리', desc: '썸, 짝사랑, 연애 썰과 고민', icon: '💌', color: 'bg-pink-50 text-pink-600 border-pink-100 hover:border-pink-300' },
+            { id: 'life', title: '인생고민 갤러리', desc: '진로, 취업, 인간관계 상담', icon: '🌱', color: 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:border-emerald-300' },
+            { id: 'humor', title: '유머/썰 갤러리', desc: '웃긴 이야기, 일상 에피소드', icon: '😂', color: 'bg-amber-50 text-amber-600 border-amber-100 hover:border-amber-300' },
+            { id: 'tech', title: '디지털/IT 갤러리', desc: '전자기기, 앱, 테크 정보', icon: '💻', color: 'bg-blue-50 text-blue-600 border-blue-100 hover:border-blue-300' }
+        ];
+
+        function generateNickname() {
+            const animals = ["다람쥐", "토끼", "쿼카", "판다", "펭귄", "햄스터", "너구리", "여우", "백구", "기린"];
+            const adjectives = ["졸린", "행복한", "배고픈", "신난", "멍때리는", "노래하는", "춤추는", "고민하는"];
+            return `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${animals[Math.floor(Math.random() * animals.length)]} #${Math.floor(Math.random() * 900) + 100}`;
+        }
+
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                await signInAnonymously(auth);
+
+                const statusEl = document.getElementById('connection-status');
+                statusEl.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-200";
+                statusEl.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span> 톡 활성화됨';
+            } catch (err) {
+                console.error("Firebase connection error:", err);
+                const statusEl = document.getElementById('connection-status');
+                statusEl.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-600 border border-rose-200";
+                statusEl.innerHTML = '<span class="w-1.5 h-1.5 mr-1.5 bg-rose-500 rounded-full"></span> 연결 오류';
             }
-            db = firebase.firestore();
-        } catch (e) {
-            console.warn("클라우드 연결 실패, 로컬 모드로 전환합니다.");
         }
 
-        let currentRoom = null;
-        let currentPostId = null;
-        let myNickname = "익명" + Math.floor(Math.random() * 9000 + 1000);
-        document.getElementById('userInfo').innerText = myNickname;
-
-        function enterRoom(roomKey) {
-            currentRoom = roomKey;
-            document.getElementById('homeView').classList.add('hidden');
-            document.getElementById('detailView').classList.add('hidden');
-            document.getElementById('roomView').classList.remove('hidden');
-            document.getElementById('roomTitle').innerText = roomKey === 'romance' ? '❤️ 연애고민 방' : '🧠 인생고민 방';
-            loadPostsRealtime();
+        function initApp() {
+            let myNickname = localStorage.getItem('dc_nickname');
+            if (!myNickname) {
+                myNickname = generateNickname();
+                localStorage.setItem('dc_nickname', myNickname);
+            }
+            document.getElementById('nickname-badge').innerText = myNickname;
+            renderGalleries();
+            initFirebase();
         }
 
-        function goHome() {
-            currentRoom = null;
-            currentPostId = null;
-            document.getElementById('roomView').classList.add('hidden');
-            document.getElementById('detailView').classList.add('hidden');
-            document.getElementById('homeView').classList.remove('hidden');
+        function renderGalleries() {
+            const grid = document.getElementById('gallery-grid');
+            if (!grid) return;
+            grid.innerHTML = galleries.map(g => `
+                <button onclick="window.enterGallery('${g.id}')" class="p-5 rounded-2xl border-2 ${g.color} transition flex flex-col items-start text-left space-y-3 shadow-sm group">
+                    <span class="text-3xl bg-white p-2.5 rounded-xl shadow-xs">${g.icon}</span>
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-sm group-hover:text-blue-600">${g.title}</h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">${g.desc}</p>
+                    </div>
+                </button>
+            `).join('');
         }
 
-        function backToRoom() {
-            currentPostId = null;
-            document.getElementById('detailView').classList.add('hidden');
-            document.getElementById('roomView').classList.remove('hidden');
-            loadPostsRealtime();
+        window.enterGallery = function(roomId) {
+            currentRoomId = roomId;
+            const info = galleries.find(g => g.id === roomId);
+
+            document.getElementById('current-room-icon').innerText = info.icon;
+            document.getElementById('current-room-title').innerText = info.title;
+            document.getElementById('current-room-desc').innerText = info.desc;
+
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-post').classList.add('hidden');
+            document.getElementById('view-room').classList.remove('hidden');
+            document.getElementById('view-room').classList.add('flex');
+
+            listenPosts(roomId);
         }
 
-        // 실시간 게시글 불러오기
-        function loadPostsRealtime() {
-            const listEl = document.getElementById('postList');
+        window.goHome = function() {
+            if (postsUnsubscribe) postsUnsubscribe();
+            if (commentsUnsubscribe) commentsUnsubscribe();
+            document.getElementById('view-room').classList.remove('flex');
+            document.getElementById('view-room').classList.add('hidden');
+            document.getElementById('view-post').classList.remove('flex');
+            document.getElementById('view-post').classList.add('hidden');
+            document.getElementById('view-home').classList.remove('hidden');
+        }
+
+        window.backToRoom = function() {
+            if (commentsUnsubscribe) commentsUnsubscribe();
+            document.getElementById('view-post').classList.remove('flex');
+            document.getElementById('view-post').classList.add('hidden');
+            document.getElementById('view-room').classList.remove('hidden');
+            document.getElementById('view-room').classList.add('flex');
+        }
+
+        function listenPosts(roomId) {
+            const container = document.getElementById('posts-container');
+            container.innerHTML = `<div class="p-12 text-center text-xs text-slate-400">실시간 게시글 불러오는 중...</div>`;
+
+            if (postsUnsubscribe) postsUnsubscribe();
+
+            const postsCol = collection(db, 'artifacts', appId, 'public', 'data', `room_${roomId}_posts`);
             
-            if (db) {
-                // 클라우드 DB 연동 모드
-                db.collection('rooms').doc(currentRoom).collection('posts')
-                  .orderBy('timestamp', 'desc')
-                  .onSnapshot(snapshot => {
-                      renderPostList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                  }, error => {
-                      loadPostsFallback();
-                  });
-            } else {
-                loadPostsFallback();
-            }
-        }
+            postsUnsubscribe = onSnapshot(postsCol, (snapshot) => {
+                const posts = [];
+                snapshot.forEach(docSnap => {
+                    posts.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                posts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-        function loadPostsFallback() {
-            const saved = localStorage.getItem('posts_' + currentRoom);
-            let posts = saved ? JSON.parse(saved) : [
-                { id: '1', author: '운영자', text: '환영합니다! 이 방에 글을 쓰면 다른 사람들도 볼 수 있습니다.', time: '방금 전', timestamp: Date.now() }
-            ];
-            renderPostList(posts);
-        }
+                if (posts.length === 0) {
+                    container.innerHTML = `<div class="p-12 text-center text-xs text-slate-400">작성된 게시글이 없습니다. 우측 상단 '글쓰기' 버튼을 눌러 첫 글을 작성해 보세요!</div>`;
+                    return;
+                }
 
-        function renderPostList(posts) {
-            const listEl = document.getElementById('postList');
-            listEl.innerHTML = '';
-            if (posts.length === 0) {
-                listEl.innerHTML = '<p class="text-center text-gray-400 mt-10">작성된 글이 없습니다. 첫 글을 남겨보세요!</p>';
-                return;
-            }
-            posts.forEach(p => {
-                const div = document.createElement('div');
-                div.className = "bg-white border border-gray-200 p-4 rounded-xl shadow-xs cursor-pointer hover:border-indigo-400 transition";
-                div.onclick = () => openDetail(p);
-                div.innerHTML = `
-                    <div class="flex justify-between text-xs text-gray-400 mb-1">
-                        <span class="font-bold text-gray-600">${p.author}</span>
-                        <span>${p.time || '방금 전'}</span>
+                container.innerHTML = posts.map(p => `
+                    <div onclick="window.openPost('${p.id}', '${escapeAttr(p.title)}', '${escapeAttr(p.content)}', '${escapeAttr(p.nickname)}', '${p.createdAt || Date.now()}')" class="p-4 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between border-b border-slate-50">
+                        <div class="space-y-1 pr-4">
+                            <h4 class="font-bold text-slate-800 text-sm hover:text-blue-600">${escapeHtml(p.title)}</h4>
+                            <p class="text-xs text-slate-500 line-clamp-1">${escapeHtml(p.content)}</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-xs font-medium text-slate-700">${escapeHtml(p.nickname)}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">${formatTime(p.createdAt)}</div>
+                        </div>
                     </div>
-                    <p class="text-gray-800 text-sm whitespace-pre-wrap mb-2">${p.text}</p>
-                    <div class="text-right text-xs text-indigo-600 font-semibold">댓글 보기 및 토론 →</div>
-                `;
-                listEl.appendChild(div);
+                `).join('');
+            }, (error) => {
+                console.error("Posts subscription error:", error);
+                container.innerHTML = `<div class="p-12 text-center text-xs text-rose-500">데이터를 불러오는 중 오류가 발생했습니다. Firestore 규칙을 확인해주세요.</div>`;
             });
         }
 
-        function writePost() {
-            const input = document.getElementById('postInput');
-            const text = input.value.trim();
-            if (!text) return;
+        window.openPost = function(postId, title, content, nickname, createdAt) {
+            currentPostId = postId;
+            document.getElementById('detail-room-badge').innerText = galleries.find(g => g.id === currentRoomId).title;
+            document.getElementById('detail-title').innerText = title;
+            document.getElementById('detail-author').innerText = `작성자: ${nickname}`;
+            document.getElementById('detail-time').innerText = formatTime(createdAt);
+            document.getElementById('detail-content').innerText = content;
 
-            const newPostData = {
-                author: myNickname,
-                text: text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            document.getElementById('view-room').classList.remove('flex');
+            document.getElementById('view-room').classList.add('hidden');
+            document.getElementById('view-post').classList.remove('hidden');
+            document.getElementById('view-post').classList.add('flex');
 
-            if (db) {
-                db.collection('rooms').doc(currentRoom).collection('posts').add(newPostData)
-                  .then(() => { input.value = ''; })
-                  .catch(err => { writePostFallback(text); input.value = ''; });
-            } else {
-                writePostFallback(text);
-                input.value = '';
-            }
+            listenComments(postId);
         }
 
-        function writePostFallback(text) {
-            const saved = localStorage.getItem('posts_' + currentRoom);
-            let posts = saved ? JSON.parse(saved) : [];
-            posts.unshift({
-                id: String(Date.now()),
-                author: myNickname,
-                text: text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                timestamp: Date.now()
-            });
-            localStorage.setItem('posts_' + currentRoom, JSON.stringify(posts));
-            loadPostsFallback();
-        }
+        function listenComments(postId) {
+            const container = document.getElementById('comments-list');
+            container.innerHTML = `<div class="text-center text-xs text-slate-400 py-4">댓글 불러오는 중...</div>`;
 
-        // 상세 게시글 및 댓글 화면 열기
-        function openDetail(post) {
-            currentPostId = post.id;
-            document.getElementById('roomView').classList.add('hidden');
-            document.getElementById('detailView').classList.remove('hidden');
+            if (commentsUnsubscribe) commentsUnsubscribe();
 
-            document.getElementById('detailPostBox').innerHTML = `
-                <div class="flex justify-between text-xs text-indigo-400 mb-1">
-                    <span class="font-bold text-indigo-700">${post.author}</span>
-                    <span>${post.time || ''}</span>
-                </div>
-                <p class="text-gray-900 text-sm font-medium whitespace-pre-wrap">${post.text}</p>
-            `;
-            loadCommentsRealtime();
-        }
+            const commentsCol = collection(db, 'artifacts', appId, 'public', 'data', `post_${postId}_comments`);
 
-        function loadCommentsRealtime() {
-            if (db && currentPostId.length > 10) {
-                db.collection('rooms').doc(currentRoom).collection('posts').doc(currentPostId).collection('comments')
-                  .orderBy('timestamp', 'asc')
-                  .onSnapshot(snapshot => {
-                      renderCommentList(snapshot.docs.map(doc => doc.data()));
-                  }, err => { loadCommentsFallback(); });
-            } else {
-                loadCommentsFallback();
-            }
-        }
+            commentsUnsubscribe = onSnapshot(commentsCol, (snapshot) => {
+                const comments = [];
+                snapshot.forEach(docSnap => {
+                    comments.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                comments.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
-        function loadCommentsFallback() {
-            const saved = localStorage.getItem('comments_' + currentPostId);
-            let comments = saved ? JSON.parse(saved) : [];
-            renderCommentList(comments);
-        }
+                document.getElementById('comment-count').innerText = comments.length;
 
-        function renderCommentList(comments) {
-            const listEl = document.getElementById('commentList');
-            listEl.innerHTML = '';
-            if (comments.length === 0) {
-                listEl.innerHTML = '<p class="text-center text-gray-400 py-4 text-xs">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>';
-                return;
-            }
-            comments.forEach(c => {
-                const div = document.createElement('div');
-                div.className = "bg-gray-50 border border-gray-100 p-3 rounded-lg text-xs";
-                div.innerHTML = `
-                    <div class="flex justify-between text-gray-400 mb-0.5">
-                        <span class="font-bold text-gray-700">${c.author}</span>
-                        <span>${c.time}</span>
+                if (comments.length === 0) {
+                    container.innerHTML = `<div class="text-center text-xs text-slate-400 py-4">첫 번째 실시간 댓글을 남겨보세요!</div>`;
+                    return;
+                }
+
+                container.innerHTML = comments.map(c => `
+                    <div class="bg-slate-50 rounded-xl p-3 text-xs space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-700">${escapeHtml(c.nickname)}</span>
+                            <span class="text-[10px] text-slate-400">${formatTime(c.createdAt)}</span>
+                        </div>
+                        <p class="text-slate-600 leading-relaxed">${escapeHtml(c.text)}</p>
                     </div>
-                    <p class="text-gray-800 whitespace-pre-wrap">${c.text}</p>
-                `;
-                listEl.appendChild(div);
+                `).join('');
+            }, (error) => {
+                console.error("Comments error:", error);
+                container.innerHTML = `<div class="text-center text-xs text-rose-500 py-4">댓글 로드 중 오류 발생</div>`;
             });
-            listEl.scrollTop = listEl.scrollHeight;
         }
 
-        function writeComment() {
-            const input = document.getElementById('commentInput');
+        window.submitComment = async function(event) {
+            event.preventDefault();
+            const input = document.getElementById('comment-input');
             const text = input.value.trim();
-            if (!text) return;
+            if (!text || !currentPostId) return;
 
-            const newComment = {
-                author: myNickname,
-                text: text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            const myNickname = localStorage.getItem('dc_nickname') || '익명';
+            input.value = '';
 
-            if (db && currentPostId.length > 10) {
-                db.collection('rooms').doc(currentRoom).collection('posts').doc(currentPostId).collection('comments').add(newComment)
-                  .then(() => { input.value = ''; });
-            } else {
-                const saved = localStorage.getItem('comments_' + currentPostId);
-                let comments = saved ? JSON.parse(saved) : [];
-                comments.push({ ...newComment, timestamp: Date.now() });
-                localStorage.setItem('comments_' + currentPostId, JSON.stringify(comments));
-                input.value = '';
-                loadCommentsFallback();
+            try {
+                const commentsCol = collection(db, 'artifacts', appId, 'public', 'data', `post_${currentPostId}_comments`);
+                await addDoc(commentsCol, {
+                    text: text,
+                    nickname: myNickname,
+                    createdAt: Date.now()
+                });
+            } catch (err) {
+                console.error("Failed to add comment:", err);
             }
         }
+
+        window.openWriteModal = function() {
+            document.getElementById('write-modal').classList.remove('hidden');
+            document.getElementById('write-modal').classList.add('flex');
+        }
+
+        window.closeWriteModal = function() {
+            document.getElementById('write-modal').classList.remove('flex');
+            document.getElementById('write-modal').classList.add('hidden');
+            document.getElementById('post-title-input').value = '';
+            document.getElementById('post-content-input').value = '';
+        }
+
+        window.submitPost = async function(event) {
+            event.preventDefault();
+            const title = document.getElementById('post-title-input').value.trim();
+            const content = document.getElementById('post-content-input').value.trim();
+            if (!title || !content || !currentRoomId) return;
+
+            const myNickname = localStorage.getItem('dc_nickname') || '익명';
+            closeWriteModal();
+
+            try {
+                const postsCol = collection(db, 'artifacts', appId, 'public', 'data', `room_${currentRoomId}_posts`);
+                await addDoc(postsCol, {
+                    title: title,
+                    content: content,
+                    nickname: myNickname,
+                    createdAt: Date.now()
+                });
+            } catch (err) {
+                console.error("Failed to submit post:", err);
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function escapeAttr(str) {
+            return String(str || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '방금 전';
+            const date = new Date(Number(timestamp));
+            const now = new Date();
+            const diff = (now - date) / 1000;
+            if (diff < 60) return '방금 전';
+            if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        window.shareLink = function() {
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = window.location.href;
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+            
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-16 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2 rounded-xl shadow-lg z-50 animate-bounce";
+            toast.innerText = "클립보드에 링크가 복사되었습니다! 친구에게 공유해보세요.";
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        window.onload = initApp;
     </script>
 </body>
 </html>
